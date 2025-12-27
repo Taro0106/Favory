@@ -13,7 +13,7 @@ const navLinks = ref([
   <nav class="navbar">
     <div class="container">
       <RouterLink to="/" class="brand-group">
-        <img src="@/assets/logo.svg" alt="Logo" class="logo-img" />
+        <img src="../pic/logo2.png" alt="Logo" class="logo-img" />
         <span class="brand-name">{{ brandName }}</span>
       </RouterLink>
 
