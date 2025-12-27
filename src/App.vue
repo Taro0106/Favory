@@ -41,7 +41,7 @@ const sendMessage = async () => {
 <template>
   <Navbar />
   <div>
-    <h2>Firebase 留言板</h2>
+    <h2>Firebase 留言板222222</h2>
     <input v-model="newMessage" placeholder="想說什麼？" @keyup.enter="sendMessage">
     <button @click="sendMessage">送出</button>
 
