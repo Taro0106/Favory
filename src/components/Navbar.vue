@@ -5,7 +5,7 @@ import { RouterLink } from 'vue-router'
 const brandName = ref(' firebase')
 const navLinks = ref([
   { name: '首頁', path: '/' },
-  { name: '關於我們', path: '/about' }
+  { name: '漫畫收藏', path: '/about' }
 ])
 </script>
 
