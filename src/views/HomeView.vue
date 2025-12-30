@@ -1,3 +1,28 @@
+<script setup>
+import { auth, provider } from '../firebase' // 引入剛才導出的工具
+import { signInWithPopup } from "firebase/auth";
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const handleLogin = async () => {
+  try {
+    // 彈出 Google 登入視窗
+    const result = await signInWithPopup(auth, provider);
+    
+    // 登入成功後，可以取得使用者資訊 (例如頭像、名字)
+    const user = result.user;
+    console.log("登入成功！使用者：", user.displayName);
+    
+    // 登入成功後，跳轉到收藏清單頁面
+    router.push('/List'); 
+  } catch (error) {
+    console.error("登入失敗：", error.message);
+    alert("登入失敗，請確認 Firebase 後台已開啟 Google 登入功能");
+  }
+}
+</script>
+
 <template>
   <div class="login-container">
     <div class="brand-section">
@@ -13,7 +38,7 @@
         <h2>歡迎回來 🌸</h2>
         <p>請使用您的 Google 帳號登入以同步收藏</p>
         
-        <button class="google-login-btn">
+        <button @click="handleLogin" class="google-login-btn">
           <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" class="google-icon" />
           使用 Google 帳號登入
         </button>

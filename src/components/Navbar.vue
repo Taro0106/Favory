@@ -1,18 +1,52 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import { auth } from '../firebase' // 確保路徑對應你的 firebase.js
+import { onAuthStateChanged, signOut } from "firebase/auth"
+import { useRouter } from 'vue-router'
 
-// --- 預留使用者資料 ---
+const router = useRouter()
+
+// 1. 初始化使用者資料 (預設為未登入狀態)
 const user = ref({
   name: '未登入',
-  avatar: 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png' // 預設可愛頭像
+  avatar: 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
+})
+const isLoggedIn = ref(false)
+
+// 2. 監聽 Firebase 登入狀態
+onMounted(() => {
+  onAuthStateChanged(auth, (firebaseUser) => {
+    if (firebaseUser) {
+      // 如果有登入，抓取 Google 的資料
+      user.value = {
+        name: firebaseUser.displayName || '神秘收藏家',
+        avatar: firebaseUser.photoURL || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
+      }
+      isLoggedIn.value = true
+    } else {
+      // 如果沒登入，回到預設狀態
+      user.value = {
+        name: '未登入',
+        avatar: 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
+      }
+      isLoggedIn.value = false
+    }
+  })
 })
 
-// --- 模擬分類清單 (之後會從 Firestore 動態抓取) ---
+// 3. 登出函式
+const handleLogout = async () => {
+  try {
+    await signOut(auth)
+    router.push('/') // 登出後跳回登入頁面
+  } catch (error) {
+    console.error("登出失敗", error)
+  }
+}
+
+// 分類邏輯保持不變
 const categories = ref(['漫畫', '動漫', '輕小說', '畫集'])
-
-// 控制手機版分類彈窗
 const isCategoryModalOpen = ref(false)
-
 const toggleCategoryModal = () => {
   isCategoryModalOpen.value = !isCategoryModalOpen.value
 }
@@ -29,6 +63,7 @@ const toggleCategoryModal = () => {
       <div class="user-profile">
         <img :src="user.avatar" alt="avatar" class="avatar">
         <span class="user-name">{{ user.name }}</span>
+        <button v-if="isLoggedIn" @click="handleLogout" class="logout-btn">登出</button>
       </div>
 
       <div class="menu-sections">
@@ -241,4 +276,28 @@ const toggleCategoryModal = () => {
 /* 動畫 */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* 在你原本的樣式後面加入 */
+.logout-btn {
+  margin-top: 8px;
+  background: none;
+  border: 1px solid #ffb6c1;
+  color: #ff82ab;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.logout-btn:hover {
+  background: #ffe4e1;
+  color: #ff69b4;
+}
+
+.mini-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
 </style>
