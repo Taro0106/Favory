@@ -1,40 +1,39 @@
 <script setup>
-import { onMounted } from 'vue' // 記得引入 onMounted
+import { onMounted } from 'vue'
 import { auth, provider } from '../firebase'
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth"; 
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth"
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// 關鍵：處理重定向回來的結果
+// --- 關鍵：處理手機版登入跳轉回來後的結果 ---
 onMounted(async () => {
   try {
-    const result = await getRedirectResult(auth);
+    const result = await getRedirectResult(auth)
     if (result) {
-      // 這代表是從 Google 登入重定向回來的
-      console.log("重定向登入成功", result.user);
-      router.push('/List');
+      // 這代表剛從 Google 跳轉回來並成功登入了
+      console.log("登入成功:", result.user.displayName)
+      router.push('/List') // 強制跳轉到清單頁
     }
   } catch (error) {
-    console.error("處理重定向失敗：", error);
+    console.error("重定向登入出錯:", error.code)
+    // 如果報錯是 auth/unauthorized-domain，代表 GitHub 網域沒加進白名單
   }
 })
 
 const handleLogin = async () => {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   try {
     if (isMobile) {
-      // 手機版：直接跳轉
-      await signInWithRedirect(auth, provider);
+      // 手機版：跳轉
+      await signInWithRedirect(auth, provider)
     } else {
-      // 電腦版
-      await signInWithPopup(auth, provider);
-      router.push('/List');
+      // 電腦版：彈窗
+      await signInWithPopup(auth, provider)
+      router.push('/List')
     }
   } catch (error) {
-    // 如果這裡一直噴錯誤，我們把錯誤印出來看看
-    console.error("Detailed Error:", error);
-    alert(`登入錯誤碼: ${error.code}`); 
+    console.error(error)
   }
 }
 </script>
