@@ -1,11 +1,17 @@
 <script setup>
-import { RouterView } from 'vue-router'
+import { computed } from 'vue' // 記得導入 computed
+import { RouterView, useRoute } from 'vue-router' // 記得導入 useRoute
 import Navbar from './components/Navbar.vue'
+
+const route = useRoute()
+
+// 判斷是否為首頁 (假設你的首頁路徑是 '/')
+const isLandingPage = computed(() => route.path === '/')
 </script>
 
 <template>
   <div class="app-layout">
-    <Navbar />
+    <Navbar v-if="!isLandingPage"/>
 
     <main class="main-container">
       <RouterView />

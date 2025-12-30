@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAnH6OrDHBa-ljtrEpfAmwDzSXZdVqLBzw",
@@ -14,5 +15,10 @@ const firebaseConfig = {
 // 初始化 Firebase
 const app = initializeApp(firebaseConfig);
 
-// 導出資料庫實例
-export const db = getFirestore(app);
+// 初始化服務（這裡不要加 export）
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// 統一在最後一行導出
+export { db, auth, provider };
