@@ -71,6 +71,10 @@ const toggleCategoryModal = () => {
           <span class="icon">📚</span> 全部收藏
         </router-link>
 
+        <router-link to="/AddFavory" class="nav-link">
+          <span class="icon">📚</span> 新增
+        </router-link>
+
         <div class="divider"></div>
 
         <div class="category-section">
@@ -90,9 +94,14 @@ const toggleCategoryModal = () => {
     </aside>
 
     <div class="bottom-nav-mobile">
-      <router-link to="/" class="mobile-nav-item">
+      <router-link to="/List" class="mobile-nav-item">
         <span class="icon">📚</span>
         <span class="label">全部</span>
+      </router-link>
+
+      <router-link to="/AddFavory" class="mobile-nav-item">
+        <span class="icon">📚</span>
+        <span class="label">新增</span>
       </router-link>
 
       <button @click="toggleCategoryModal" class="mobile-nav-item btn-reset">
