@@ -1,24 +1,25 @@
 <script setup>
 import { auth, provider } from '../firebase' // 引入剛才導出的工具
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect } from "firebase/auth";// 引入 Redirect
 import { useRouter } from 'vue-router'
-
 const router = useRouter()
 
 const handleLogin = async () => {
+  // 偵測是否為手機/行動裝置
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   try {
-    // 彈出 Google 登入視窗
-    const result = await signInWithPopup(auth, provider);
-    
-    // 登入成功後，可以取得使用者資訊 (例如頭像、名字)
-    const user = result.user;
-    console.log("登入成功！使用者：", user.displayName);
-    
-    // 登入成功後，跳轉到收藏清單頁面
-    router.push('/List'); 
+    if (isMobile) {
+      // 手機版：直接跳轉（不會被阻擋）
+      await signInWithRedirect(auth, provider);
+    } else {
+      // 電腦版：維持彈窗（體驗較好）
+      await signInWithPopup(auth, provider);
+      router.push('/List');
+    }
   } catch (error) {
-    console.error("登入失敗：", error.message);
-    alert("登入失敗，請確認 Firebase 後台已開啟 Google 登入功能");
+    console.error("登入失敗：", error);
+    alert("登入遇到問題，請嘗試使用瀏覽器開啟（如 Chrome/Safari）");
   }
 }
 </script>
