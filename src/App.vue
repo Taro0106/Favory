@@ -38,7 +38,7 @@ const isLandingPage = computed(() => route.path === '/')
 .main-container {
   flex: 1; /* 這裡不需要 margin-left，它會自動貼在 sidebar 右邊 */
   height: 100vh;
-  overflow-y: hidden;
+  overflow-y: auto;
   overflow-x: hidden;
   background-color: #fffafb;
 }
@@ -52,5 +52,9 @@ const isLandingPage = computed(() => route.path === '/')
     width: 100%;
     height: 70px; /* 如果手機版 Navbar 在底部，這裡甚至可以設為 0 */
   }
+
+  .main-container {
+  margin-bottom: 70px;
+}
 }
 </style>

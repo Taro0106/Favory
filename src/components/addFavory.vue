@@ -67,7 +67,6 @@ const addItem = async () => {
 </script>
 
 <template>
-  <div class="container">
     <h1 class="main-title">🌸 新增Favory 🌸</h1>
 
     <div class="form-card">
@@ -109,21 +108,9 @@ const addItem = async () => {
     </div>
 
     
-  </div>
 </template>
 
 <style scoped>
-/* 全域與標題 */
-.container { 
-  max-width: 100%; 
-  margin: 0 auto; 
-  padding: 40px 20px; 
-  font-family: 'Noto Sans TC', sans-serif; 
-  background-color: #fffafb; 
-  min-height: 100vh; 
-  max-height: 100%;
-  overflow-y: scroll;
-}
 .main-title { text-align: center; color: #ff82ab; margin-bottom: 30px; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(255, 182, 193, 0.5); }
 
 /* 表單卡片 */
