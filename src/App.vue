@@ -40,7 +40,10 @@ const isLandingPage = computed(() => route.path === '/')
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #fffafb;
+  background-image: url('https://i.pinimg.com/736x/e5/74/98/e574986391e767659f0fe852c8c7ede2.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 /* 手機版適應：改回上下堆疊 */
