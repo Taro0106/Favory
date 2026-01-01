@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { db, auth } from '../firebase' 
-import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, where } from 'firebase/firestore'
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, where } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
 const collectionList = ref([]) 
+const selectedItem = ref(null) // 儲存當前點選的作品
 
 onMounted(() => {
   onAuthStateChanged(auth, (user) => {
@@ -30,27 +31,70 @@ onMounted(() => {
 const deleteItem = async (id) => {
   if (confirm('要跟這部作品說掰掰嗎？ 🥺')) {
     await deleteDoc(doc(db, "myFavoryList", id));
+    selectedItem.value = null; // 刪除後關閉 Modal
   }
+}
+
+// 開啟詳情
+const openModal = (item) => {
+  selectedItem.value = item;
+}
+
+// 關閉詳情
+const closeModal = () => {
+  selectedItem.value = null;
 }
 </script>
 
 <template>
   <div class="container">
     <div class="list-grid">
-      <div v-for="item in collectionList" :key="item.id" class="item-card">
-        <button class="delete-btn" @click="deleteItem(item.id)" title="刪除">
-          <span>×</span>
-        </button>
-        
+      <div v-for="item in collectionList" :key="item.id" class="item-card" @click="openModal(item)">
         <div class="card-img">
           <img :src="item.image" :alt="item.name">
           <div class="overlay">
             <div class="name">{{ item.name }}</div>
           </div>
         </div>
-        
       </div>
     </div>
+
+    <Transition name="fade">
+      <div v-if="selectedItem" class="modal-overlay" @click.self="closeModal">
+        <div class="modal-content">
+          <button class="close-btn" @click="closeModal">×</button>
+          
+          <div class="modal-body">
+            <div class="modal-img-container">
+              <img :src="selectedItem.image" :alt="selectedItem.name">
+            </div>
+            
+            <div class="modal-info">
+              <h2 class="detail-name">{{ selectedItem.name }}</h2>
+              
+              <div class="detail-meta">
+                <span class="tag">🏷️ {{ selectedItem.category }}</span>
+                <span class="tag status">📍 {{ selectedItem.status }}</span>
+              </div>
+
+              <div class="detail-rating">
+                <span class="stars">{{ '⭐'.repeat(selectedItem.rating) }}</span>
+                <span class="rating-text">({{ selectedItem.rating }}/5)</span>
+              </div>
+
+              <div class="detail-comment">
+                <h3>評語</h3>
+                <p>{{ selectedItem.comment || '這個主人很懶，什麼都沒留下...' }}</p>
+              </div>
+
+              <button class="detail-delete-btn" @click="deleteItem(selectedItem.id)">
+                🗑️ 移除此收藏
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <div v-if="collectionList.length === 0" class="empty-state">
       <div class="empty-icon">📚</div>
@@ -175,6 +219,7 @@ const deleteItem = async (id) => {
   padding: 20px 15px 10px;
   transform: translateY(100%);
   transition: transform 0.3s ease;
+  
 }
 
 .item-card:hover .overlay {
@@ -188,6 +233,8 @@ const deleteItem = async (id) => {
   text-align: center;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   line-height: 1.3;
+  overflow: hidden;        /* 超過寬度隱藏 */
+  text-overflow: ellipsis; /* 顯示 ... */
 }
 
 .empty-state {
@@ -229,6 +276,221 @@ const deleteItem = async (id) => {
 
   .stars {
     font-size: 10px;
+  }
+}
+
+/* 原有的清單 CSS 保持不變... 略 */
+
+/* --- Modal 樣式 --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 20px;
+}
+/* --- Modal 核心滾動修正 --- */
+.modal-content {
+  background: white;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh; /* 限制 Modal 最大高度 */
+  border-radius: 20px;
+  position: relative;
+  /* 移除 overflow: hidden 讓裡面可以滾動 */
+  display: flex;
+  flex-direction: column;
+  animation: modalUp 0.3s ease-out;
+}
+
+.modal-body {
+  flex: 1; /* 佔滿 content 剩餘空間 */
+  display: flex;
+  flex-direction: column; /* 手機版預設：上下排列 */
+  
+  /* 關鍵修正：讓 body 區域產生滾動條 */
+  overflow-y: auto; 
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* 手機滑動加速 */
+}
+
+.modal-img-container {
+  width: 90%;
+  flex-shrink: 0; /* 防止圖片被壓縮 */
+  margin: 20px auto 0px auto; /* 關鍵 2：上下留點間距，左右自動置中 */
+  background: #f9f9f9;
+  border-radius: 20px;
+
+}
+
+.modal-img-container img {
+  width: 100%;
+  height: auto;
+  display: block; /* 移除圖片下方間隙 */
+  object-fit: contain;
+  border-radius: 20px;
+
+}
+
+.modal-info {
+  padding: 0px 25px 25px 25px;
+  width: 100%;
+  /* 手機版不要讓 info 自己滾動，讓整個 body 滾動就好 */
+}
+
+.detail-name {
+  font-size: 1.8rem;
+  color: #5d4037;
+  margin-bottom: 15px;
+  /* 換行處理 */
+  inline-size: 100%;       /* 確保佔滿寬度 */
+  overflow-wrap: break-word; /* 遇到超長連續字元（如英文）強制斷行 */
+  word-break: break-all;     /* 針對亞洲文字與英文混合的優化 */
+  line-height: 1.3;
+}
+
+.detail-meta {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tag {
+  background: #fff0f5;
+  color: #ff82ab;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.detail-rating {
+  margin-bottom: 25px;
+  font-size: 1.2rem;
+}
+
+.rating-text {
+  font-size: 14px;
+  color: #999;
+  margin-left: 8px;
+}
+
+.detail-comment {
+  background: #fffafb;
+  padding: 10px;
+  border-radius: 15px;
+  border-left: 4px solid #ffb6c1;
+  margin-bottom: 30px;
+  /* 寬度超過隱藏（通常建議顯示省略號，否則使用者不知道後面還有字） */
+  width: 100%;
+  white-space: nowrap;     /* 強制不換行 */
+  overflow: hidden;        /* 超過寬度隱藏 */
+  text-overflow: ellipsis; /* 顯示 ... */
+}
+
+.detail-comment h3 {
+  font-size: 16px;
+  color: #ff82ab;
+  margin-bottom: 5px;
+  margin-top: 0px;
+}
+
+.detail-comment p {
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-wrap; /* 保持換行 */
+  margin-top: 0px;
+  /* 換行處理 */
+  inline-size: 100%;       /* 確保佔滿寬度 */
+  overflow-wrap: break-word; /* 遇到超長連續字元（如英文）強制斷行 */
+  word-break: break-all;     /* 針對亞洲文字與英文混合的優化 */
+  line-height: 1.3;
+}
+
+.detail-delete-btn {
+  width: 100%;
+  padding: 12px;
+  background: #fff0f5;
+  color: #ff6b9d;
+  border: 1px solid #ffb6c1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.detail-delete-btn:hover {
+  background: #ff6b9d;
+  color: white;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: white;
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* --- 電腦版 RWD 修正 --- */
+@media (min-width: 768px) {
+  .modal-content {
+    height: 600px;
+    max-width: 900px; /* 稍微加寬一點，讓左右都有呼吸空間 */
+    width: 90%; 
+  }
+
+  .modal-body {
+    flex-direction: row; 
+    align-items: stretch; /* 確保左右兩條一樣高 */
+    overflow: hidden;
+    border-radius: 20px;
+
+  }
+
+  /* 左側圖片區：寬度固定，不被壓縮 */
+  .modal-img-container {
+    width: 45%; /* 固定佔比 45% */
+    flex-shrink: 0; /* 關鍵：強制不被擠壓 */
+    height: 100%;
+    margin: 0; 
+    background: #fdfdfd; /* 淡淡的底色 */
+    display: flex;
+    align-items: center; /* 垂直置中 */
+    justify-content: center; /* 水平置中 */
+    padding: 20px; /* 給圖片一點留白，才不會貼邊 */
+  }
+
+  .modal-img-container img {
+    width: auto;
+    height: auto;
+    max-width: 100%; /* 寬度不超過容器 */
+    max-height: 100%; /* 高度不超過容器 */
+    object-fit: contain; /* 確保比例正確且完整顯示 */
+    border-radius: 20px; /* 圖片加點小圓角更精緻 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* 輕微陰影 */
+  }
+
+  /* 右側資訊區：寬度固定，獨立滾動 */
+  .modal-info {
+    width: 55%; /* 固定佔比 55% */
+    flex-shrink: 0; /* 關鍵：強制不被擠壓 */
+    height: 100%;
+    overflow-y: auto; 
+    padding: 40px;
+    background: white;
   }
 }
 </style>
