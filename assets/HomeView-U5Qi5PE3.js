@@ -1,0 +1,1 @@
+import{_ as e,c as o,u as s,n as t}from"./index-CcoMPNJO.js";const a={class:"home-container"},c={__name:"HomeView",setup(_){return s(),(n,r)=>(t(),o("div",a," 主頁 "))}},p=e(c,[["__scopeId","data-v-4f55a4f1"]]);export{p as default};
