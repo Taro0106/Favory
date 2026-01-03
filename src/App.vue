@@ -44,6 +44,14 @@ const isLandingPage = computed(() => route.path === '/')
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  /* 核心代碼：確保內容過多時可捲動，但隱藏滾輪條 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Chrome, Safari, Edge 的隱藏方式 */
+.main-container::-webkit-scrollbar {
+  display: none;
 }
 
 /* 登入頁面容器：通常會想要乾乾淨淨，或是全螢幕居中 */

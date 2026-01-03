@@ -57,7 +57,6 @@ const toggleCategoryModal = () => {
     <aside class="sidebar-desktop">
       <div class="brand">
         <img src="../pic/logo2.png" alt="Favory Logo" class="brand-logo">
-        <h1 class="brand-name">Favory</h1>
       </div>
 
       <div class="user-profile">
@@ -155,6 +154,13 @@ const toggleCategoryModal = () => {
   flex-direction: column;
   padding: 30px 20px;
   z-index: 1000;
+}
+
+/* 如果是手機版，logo 區塊通常會隱藏或縮小 */
+@media (max-width: 1024px) {
+  .sidebar-desktop {
+    width: 180px;
+  }
 }
 
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; justify-content: center; }

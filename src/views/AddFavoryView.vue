@@ -1,6 +1,6 @@
 <script setup>
 import { RouterView } from 'vue-router'
-import AddFavory from '../components/addFavory.vue'
+import AddFavory from '../components/addFavory2.vue'
 
 </script>
 <template>
@@ -12,8 +12,9 @@ import AddFavory from '../components/addFavory.vue'
 .page { 
   max-width: 100%; 
   margin: 0 auto; 
-  padding: 40px 20px; 
+  padding: 20px 20px; 
   font-family: 'Noto Sans TC', sans-serif; 
-  background-color: #fffafb; 
 }
+
+
 </style>
