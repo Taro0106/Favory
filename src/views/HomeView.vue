@@ -1,7 +1,5 @@
 <script setup>
 import { onMounted } from 'vue'
-import { auth, provider } from '../firebase'
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth"
 import { useRouter } from 'vue-router'
 
 const router = useRouter()

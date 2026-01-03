@@ -1,6 +1,6 @@
 <script setup>
 import { RouterView } from 'vue-router'
-import AddFavory from '../components/addFavory2.vue'
+import AddFavory from '../components/addFavory.vue'
 
 </script>
 <template>

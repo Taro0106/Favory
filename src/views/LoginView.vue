@@ -13,7 +13,7 @@ onMounted(async () => {
     if (result) {
       // 這代表剛從 Google 跳轉回來並成功登入了
       console.log("登入成功:", result.user.displayName)
-      router.push('/Home') // 強制跳轉到清單頁
+      router.push('/Myhome/List') // 強制跳轉到清單頁
     }
   } catch (error) {
     console.error("重定向登入出錯:", error.code)
@@ -30,7 +30,7 @@ const handleLogin = async () => {
     } else {
       // 電腦版：彈窗
       await signInWithPopup(auth, provider)
-      router.push('/Home')
+      router.push('/Myhome/List')
     }
   } catch (error) {
     console.error(error)
