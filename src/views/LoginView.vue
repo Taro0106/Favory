@@ -6,16 +6,67 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// --- 關鍵：處理手機版登入跳轉回來後的結果 ---
+onMounted(async () => {
+  try {
+    const result = await getRedirectResult(auth)
+    if (result) {
+      // 這代表剛從 Google 跳轉回來並成功登入了
+      console.log("登入成功:", result.user.displayName)
+      router.push('/Home') // 強制跳轉到清單頁
+    }
+  } catch (error) {
+    console.error("重定向登入出錯:", error.code)
+    // 如果報錯是 auth/unauthorized-domain，代表 GitHub 網域沒加進白名單
+  }
+})
+
+const handleLogin = async () => {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  try {
+    if (isMobile) {
+      // 手機版：跳轉
+      await signInWithRedirect(auth, provider)
+    } else {
+      // 電腦版：彈窗
+      await signInWithPopup(auth, provider)
+      router.push('/Home')
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
 </script>
 
 <template>
-  <div class="home-container">
-    主頁
+  <div class="login-container">
+    <div class="brand-section">
+      <div class="brand-content">
+        <img src="../pic/logo2.png" alt="Logo" class="main-logo" />
+        <p class="app-slogan">紀錄每一份心動的二次元回憶</p>
+      </div>
+    </div>
+
+    <div class="auth-section">
+      <div class="login-card">
+        <h2>歡迎回來 🌸</h2>
+        <p>請使用您的 Google 帳號登入以同步收藏</p>
+        
+        <button @click="handleLogin" class="google-login-btn">
+          <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" class="google-icon" />
+          使用 Google 帳號登入
+        </button>
+
+        <div class="footer-links">
+          <span>繼續使用即代表同意條款</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.home-container {
+.login-container {
   display: flex;
   width: 100%;
   height: 100vh;

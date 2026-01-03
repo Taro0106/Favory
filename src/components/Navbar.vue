@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { auth, db } from '../firebase' // 確保路徑對應你的 firebase.js
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { useRouter } from 'vue-router'
+import Swal from 'sweetalert2'
 // 關鍵修正：必須引入這些方法
 import { collection, query, where, getDocs } from 'firebase/firestore'
 const router = useRouter()
@@ -38,15 +39,47 @@ onMounted(() => {
   })
 })
 
-// 3. 登出函式
 const handleLogout = async () => {
-  try {
-    await signOut(auth)
-    router.push('/') // 登出後跳回登入頁面
-  } catch (error) {
-    console.error("登出失敗", error)
+  // 1. 先跳出詢問視窗
+  const result = await Swal.fire({
+    title: '要準備離開了嗎？',
+    text: "登出後就需要重新登入才能看到收藏喔！",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#ff799f', // 使用你喜歡的粉色
+    cancelButtonColor: '#aaa',
+    confirmButtonText: '是的，登出',
+    cancelButtonText: '再留一下',
+    reverseButtons: true, // 將確認按鈕放在右邊
+    background: '#fffafb', // 搭配你的網頁背景色
+  });
+
+  // 2. 如果使用者點擊「是的，登出」
+  if (result.isConfirmed) {
+    try {
+      await signOut(auth);
+
+      // 3. 顯示登出成功的通知（自動關閉）
+      Swal.fire({
+        icon: 'success',
+        title: '已安全登出',
+        text: '期待下次見到你 ✨',
+        timer: 1500,
+        showConfirmButton: false,
+        timerProgressBar: true
+      });
+
+      router.push('/'); // 跳回登入頁
+    } catch (error) {
+      console.error("登出失敗", error);
+      Swal.fire({
+        icon: 'error',
+        title: '登出時發生錯誤',
+        text: '請稍後再試一次 Q_Q',
+      });
+    }
   }
-}
+};
 
 // 分類邏輯保持不變
 // 用來存放去重後的分類
@@ -102,11 +135,11 @@ const toggleCategoryModal = () => {
       <div class="divider"></div>
 
       <div class="menu-sections">
-        <router-link to="/List" class="nav-link">
+        <router-link to="/Myhome/List" class="nav-link">
           <span class="icon"><i class="fa-regular fa-heart"></i></span> 全部收藏
         </router-link>
 
-        <router-link to="/AddFavory" class="nav-link">
+        <router-link to="/Myhome/AddFavory" class="nav-link">
           <span class="icon"><i class="fa-solid fa-plus"></i></span> 新增
         </router-link>
 
@@ -116,7 +149,7 @@ const toggleCategoryModal = () => {
             <router-link 
               v-for="cat in categories" 
               :key="cat" 
-              :to="`/category/${cat}`" 
+              :to="`/Myhome/category/${cat}`" 
               class="category-item"
             >
               # {{ cat }}
@@ -127,12 +160,12 @@ const toggleCategoryModal = () => {
     </aside>
 
     <div class="bottom-nav-mobile">
-      <router-link to="/List" class="mobile-nav-item">
+      <router-link to="/Myhome/List" class="mobile-nav-item">
         <span class="icon"><i class="fa-regular fa-heart"></i></span>
         <span class="label">全部</span>
       </router-link>
 
-      <router-link to="/AddFavory" class="mobile-nav-item">
+      <router-link to="/Myhome/AddFavory" class="mobile-nav-item">
         <span class="icon"><i class="fa-solid fa-plus"></i></span>
         <span class="label">新增</span>
       </router-link>
@@ -156,7 +189,7 @@ const toggleCategoryModal = () => {
             <router-link 
               v-for="cat in categories" 
               :key="cat" 
-              :to="`/category/${cat}`" 
+              :to="`/Myhome/category/${cat}`" 
               class="m-cat-item"
               @click="isCategoryModalOpen = false"
             >
