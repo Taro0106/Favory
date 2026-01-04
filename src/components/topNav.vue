@@ -109,4 +109,54 @@ onMounted(() => {
 .mini-logo { height: 30px; }
 .nav-avatar { width: 32px; height: 32px; border-radius: 50%; }
 
+/* --- 手機版 RWD 調整 --- */
+@media (max-width: 768px) {
+  .top-nav {
+    padding: 10px 15px; /* 縮小導覽列邊界 */
+    height: auto;      /* 讓高度隨內容撐開 */
+    justify-content: flex-start; /* 膠囊靠左對齊 */
+  }
+
+  .nav-left {
+    padding: 6px 12px; /* 縮小膠囊內部的空隙 */
+    gap: 10px;        /* 縮小元素間的距離 */
+    max-width: 90vw;   /* 確保膠囊寬度不會超出螢幕 */
+  }
+
+  /* 1. 隱藏名字節省空間 */
+  .nav-name {
+    display: none;
+  }
+
+  /* 2. 移除使用者資訊右側的線（因為名字不見了，線會顯得很突兀） */
+  .user-info {
+    padding-right: 0;
+    border-right: none;
+  }
+
+  /* 3. 縮小 Logo 與頭貼尺寸 */
+  .mini-logo {
+    height: 24px;
+  }
+  .nav-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* 4. 調整導覽連結文字大小 */
+  .nav-item {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+}
+
+/* 針對極窄螢幕 (如 iPhone SE) 的極致精簡 */
+@media (max-width: 380px) {
+  .nav-left {
+    gap: 8px;
+  }
+  .nav-item {
+    padding: 4px 6px; /* 更窄的按鈕 */
+  }
+}
 </style>

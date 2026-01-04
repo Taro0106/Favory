@@ -220,7 +220,7 @@ onMounted(() => {
   }
   .hero-section { 
     width: 90%; 
-    margin: 60px auto;
+    margin: 40px auto;
   }
 
   /* 3. 長方形卡片：縮小高度以適應手機 */
@@ -277,7 +277,7 @@ onMounted(() => {
     padding: 4px 10px;
   }
   .creator-avatar { width: 25px; height: 25px; }
-  .creator-name { font-size: 0.7rem; }
+  .creator-name { display: none; }
   .post-time { font-size: 0.6rem; }
 }
 
