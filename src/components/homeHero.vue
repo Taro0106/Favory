@@ -359,14 +359,14 @@ onMounted(() => {
 }
 
 .comment-text::before {
-  top: -8px;
+  top: -7px;
   left: 50%;
   width: 50px;
   height: 12px;
 }
 
 .comment-text {
-  margin-top: 8px;
+  margin-top: 1px;
 }
 
   /* 右區：固定寬度並縮小圖片 */
