@@ -33,7 +33,7 @@ onMounted(() => {
   <div class="home-container">
     <TopNav/>
     <Hero/>
-    <!-- <Randon/> -->
+    <Randon/>
     
   </div>
  

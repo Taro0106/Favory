@@ -322,7 +322,7 @@ onMounted(() => {
   }
   .hero-section { 
     width: 90%; 
-    margin: 40px auto;
+    margin: 40px auto 0px;
   }
 
   /* 3. 長方形卡片：縮小高度以適應手機 */
