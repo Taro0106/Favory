@@ -1,23 +1,54 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { db, auth } from '../firebase'
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
+// 🌟 核心修正 1：確保引入 doc 和 getDoc
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import TopNav from '../components/topNav.vue'
-import Hero from '../components/homeHero.vue'
+
+// ... 其他引入
 
 const recentItems = ref([])
 const currentUser = ref(null)
+const showGacha = ref(false)
+const selectedPick = ref(null)
 
-// 抓取全站最新 5 筆
 const fetchRecentItems = async () => {
   const q = query(
-    collection(db, "myFavoryList"),
-    orderBy("createdAt", "desc")
+    collection(db, "myFavoryList")
   )
   const querySnapshot = await getDocs(q)
-  recentItems.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  const rawData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+  // 🌟 核心修正 2：補齊使用者資料
+  const userCache = {}
+  const enrichedItems = await Promise.all(rawData.map(async (item) => {
+    const uid = item.uid || item.userId
+    if (uid) {
+      if (!userCache[uid]) {
+        const userSnap = await getDoc(doc(db, "users", uid))
+        if (userSnap.exists()) userCache[uid] = userSnap.data()
+      }
+      if (userCache[uid]) {
+        return {
+          ...item,
+          userName: userCache[uid].displayName,
+          userAvatar: userCache[uid].photoURL
+        }
+      }
+    }
+    return item
+  }))
+
+  recentItems.value = enrichedItems
 }
+
+// 隨機抽取
+const handleRandomPick = () => {
+  if (recentItems.value.length === 0) return;
+  const randomIndex = Math.floor(Math.random() * recentItems.value.length);
+  selectedPick.value = recentItems.value[randomIndex];
+  showGacha.value = true;
+};
 
 onMounted(() => {
   onAuthStateChanged(auth, (user) => {
@@ -25,20 +56,6 @@ onMounted(() => {
   })
   fetchRecentItems()
 })
-
-import Swal from 'sweetalert2'
-
-// 隨機抽取函式
-const handleRandomPick = () => {
-  const randomIndex = Math.floor(Math.random() * recentItems.value.length);
-  selectedPick.value = recentItems.value[randomIndex];
-  showGacha.value = true;
-};
-
-const showGacha = ref(false); // 控制彈窗顯示
-const selectedPick = ref(null); // 存抽到的那筆資料
-
-  
 </script>
 
 <template>
@@ -69,7 +86,7 @@ const selectedPick = ref(null); // 存抽到的那筆資料
         <div class="result-info">
           <div class="result-user">
             <img :src="selectedPick.userAvatar || 'https://i.pinimg.com/474x/ac/df/d8/acdfd8460a47c598dbbc9d1794561595.jpg'" class="mini-avatar">
-            <span>{{ selectedPick.uid }} 的分享</span>
+            <span>{{ selectedPick.userName || '匿名收藏家' }} 的分享</span>
           </div>
           <h2 class="result-title">{{ selectedPick.name }}</h2>
           <p class="result-comment">{{ selectedPick.comment }}</p>

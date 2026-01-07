@@ -1,33 +1,59 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { db, auth } from '../firebase'
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
+// 🌟 引入 doc 和 getDoc
+import { doc, getDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-const recentItems = ref([])
+
 const currentUser = ref(null)
+const userData = ref(null) // 🌟 儲存從 Firestore 抓來的真實資料
+
 onMounted(() => {
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser.value = user
+    
+    if (user) {
+      try {
+        // 🌟 去 users 集合抓取該使用者的最新資料
+        const userRef = doc(db, "users", user.uid)
+        const userSnap = await getDoc(userRef)
+        
+        if (userSnap.exists()) {
+          userData.value = userSnap.data()
+        } else {
+          // 如果資料庫還沒建立（剛註冊），先用 Auth 的資料墊檔
+          userData.value = {
+            displayName: user.displayName,
+            photoURL: user.photoURL
+          }
+        }
+      } catch (error) {
+        console.error("導覽列抓取資料失敗:", error)
+      }
+    } else {
+      userData.value = null
+    }
   })
 })
 </script>
 
 <template>
-    <nav class="top-nav">
-      <div class="nav-left">
-        <img src="../pic/logo2.png" class="mini-logo" alt="Logo">
-        <template v-if="currentUser">
-          <div class="user-info">
-            <img :src="currentUser.photoURL" class="nav-avatar">
-            <span class="nav-name">{{ currentUser.displayName }}</span>
-          </div>
-          <router-link to="/Myhome/List" class="nav-item">我的收藏庫</router-link>
-          <router-link to="/Home" class="nav-item active">全站收藏</router-link>
-        </template>
-      </div>
-    </nav>
-
-    
+  <nav class="top-nav">
+    <div class="nav-left">
+      <img src="../pic/logo2.png" class="mini-logo" alt="Logo">
+      
+      <template v-if="userData">
+        <div class="user-info">
+          <img :src="userData.photoURL || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'" class="nav-avatar">
+          <span class="nav-name">{{ userData.displayName || '收藏家' }}</span>
+        </div>
+        <router-link to="/Myhome/List" class="nav-item">我的收藏庫</router-link>
+        <router-link to="/Home" class="nav-item active">全站收藏</router-link>
+      </template>
+      
+      <router-link v-else to="/" class="nav-item">立即登入</router-link>
+    </div>
+  </nav>
 </template>
 
 <style scoped>

@@ -1,45 +1,42 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { db } from '../firebase'
-import { collection, getDocs } from 'firebase/firestore'
+// 🌟 引入 query, orderBy, limit
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 
 const topCollectors = ref([])
 const loading = ref(true)
 
 const fetchLeaderboard = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, "myFavoryList"))
-    const items = querySnapshot.docs.map(doc => doc.data())
-
-    // 1. 統計每個使用者的收藏數量
-    const userStats = items.reduce((acc, item) => {
-      const uid = item.uid || 'anonymous' // 確保有 userId
-      if (!acc[uid]) {
-        acc[uid] = {
-          name: item.uid || '神祕收藏家',
-          avatar: item.userAvatar || 'https://i.pinimg.com/474x/ac/df/d8/acdfd8460a47c598dbbc9d1794561595.jpg',
-          count: 0
-        }
+    // 🌟 1. 直接查詢 users 集合，按收藏數排序，只取前 3 名
+    const q = query(
+      collection(db, "users"),
+      orderBy("totalCollections", "desc"),
+      limit(3)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    const sortedUsers = querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        name: data.displayName || '神祕收藏家',
+        avatar: data.photoURL || 'https://i.pinimg.com/474x/ac/df/d8/acdfd8460a47c598dbbc9d1794561595.jpg',
+        count: data.totalCollections || 0
       }
-      acc[uid].count++
-      return acc
-    }, {})
+    })
 
-    // 2. 轉換成陣列並排序
-    const sortedUsers = Object.values(userStats)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3) // 只取前三名
-
-    // 3. 重新排列順序： [第二名, 第一名, 第三名] 符合 UI 佈局
+    // 🌟 2. 重新排列順序： [第二名, 第一名, 第三名] 符合你的階梯 UI
     const podiumOrder = []
-    if (sortedUsers[1]) podiumOrder.push(sortedUsers[1]) // 銀
-    if (sortedUsers[0]) podiumOrder.push(sortedUsers[0]) // 金
-    if (sortedUsers[2]) podiumOrder.push(sortedUsers[2]) // 銅
+    if (sortedUsers[1]) podiumOrder.push(sortedUsers[1]) // 銀 (index 0 in UI)
+    if (sortedUsers[0]) podiumOrder.push(sortedUsers[0]) // 金 (index 1 in UI)
+    if (sortedUsers[2]) podiumOrder.push(sortedUsers[2]) // 銅 (index 2 in UI)
     
     topCollectors.value = podiumOrder
     loading.value = false
   } catch (error) {
-    console.error("Error fetching leaderboard:", error)
+    console.error("抓取名人堂失敗:", error)
+    loading.value = false
   }
 }
 
@@ -47,17 +44,18 @@ onMounted(() => {
   fetchLeaderboard()
 })
 
-// 根據在陣列中的位置判斷它是第幾名（因為我們排過序了）
+// 判定樣式的邏輯保持不變
 const getRankClass = (user, index) => {
-  if (topCollectors.value.length === 3) {
+  const len = topCollectors.value.length
+  if (len === 3) {
     return index === 0 ? 'silver' : index === 1 ? 'gold' : 'bronze'
   }
-  // 如果人數不足 3 人，邏輯需微調，這裡先假設有 3 人
   return index === 0 ? 'gold' : 'silver'
 }
 
 const getRankNumber = (user, index) => {
-  if (topCollectors.value.length === 3) {
+  const len = topCollectors.value.length
+  if (len === 3) {
     return index === 0 ? 2 : index === 1 ? 1 : 3
   }
   return index + 1

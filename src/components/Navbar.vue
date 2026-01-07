@@ -1,121 +1,134 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { auth, db } from '../firebase' // 確保路徑對應你的 firebase.js
+import { ref, onMounted, onUnmounted } from 'vue' // 🌟 加入 onUnmounted
+import { auth, db } from '../firebase'
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
-// 關鍵修正：必須引入這些方法
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore'
+
 const router = useRouter()
 
-// 1. 初始化使用者資料 (預設為未登入狀態)
+// 1. 定義變數
 const user = ref({
-  name: '未登入',
+  name: '載入中...',
   avatar: 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
 })
 const isLoggedIn = ref(false)
+const categories = ref([])
+const isCategoryModalOpen = ref(false)
+
+// 🌟 定義監聽器的變數，以便後續關閉
+let unsubscribeCategories = null 
 
 // 2. 監聽 Firebase 登入狀態
 onMounted(() => {
-  onAuthStateChanged(auth, (firebaseUser) => {
+  onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
-      // 如果有登入，抓取 Google 的資料
-      user.value = {
-        name: firebaseUser.displayName || '神秘收藏家',
-        avatar: firebaseUser.photoURL || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
-      }
-      // 登入成功後，立刻執行抓取分類
-      fetchUserCategories(firebaseUser.uid);
       isLoggedIn.value = true
+      
+      try {
+        const userRef = doc(db, "users", firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          user.value = {
+            name: userData.displayName || '神秘收藏家',
+            avatar: userData.photoURL || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
+          }
+        } else {
+          user.value = {
+            name: firebaseUser.displayName || '神秘收藏家',
+            avatar: firebaseUser.photoURL || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
+          }
+        }
+      } catch (error) {
+        console.error("抓取使用者資料失敗:", error);
+      }
+
+      // 登入後執行分類抓取
+      fetchUserCategories(firebaseUser.uid);
     } else {
-      // 如果沒登入，回到預設狀態
       user.value = {
         name: '未登入',
         avatar: 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'
       }
       isLoggedIn.value = false
-      categories.value = []; // 沒登入就清空
+      categories.value = [];
+      
+      // 🌟 登出時如果監聽器還在，就把它關掉
+      if (unsubscribeCategories) {
+        unsubscribeCategories();
+        unsubscribeCategories = null;
+      }
     }
   })
 })
 
+// 確保組件卸載時也會關閉監聽
+onUnmounted(() => {
+  if (unsubscribeCategories) unsubscribeCategories();
+})
+
+// --- 核心邏輯：獲取該使用者的所有分類 ---
+const fetchUserCategories = (uid) => {
+  try {
+    // 🌟 注意：如果你的欄位叫 userId，請確保這裡的查詢名稱正確
+    const q = query(
+      collection(db, "myFavoryList"), 
+      where("uid", "==", uid) // ⚠️ 檢查你的資料庫是 uid 還是 userId
+    );
+    
+    // 🌟 正確賦值給外部變數
+    unsubscribeCategories = onSnapshot(q, (snapshot) => {
+      const allCats = [];
+      snapshot.forEach((doc) => {
+        if (doc.data().category) {
+          allCats.push(doc.data().category);
+        }
+      });
+      categories.value = [...new Set(allCats)];
+      console.log("分類已即時更新:", categories.value);
+    }, (error) => {
+      console.error("監聽分類失敗:", error);
+    });
+    
+  } catch (error) {
+    console.error("啟動分類監聽失敗", error);
+  }
+}
+
+// 登出邏輯
 const handleLogout = async () => {
-  // 1. 先跳出詢問視窗
   const result = await Swal.fire({
     title: '要準備離開了嗎？',
     text: "登出後就需要重新登入才能看到收藏喔！",
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#ff799f', // 使用你喜歡的粉色
+    confirmButtonColor: '#ff799f',
     cancelButtonColor: '#aaa',
     confirmButtonText: '是的，登出',
     cancelButtonText: '再留一下',
-    reverseButtons: true, // 將確認按鈕放在右邊
-    background: '#fffafb', // 搭配你的網頁背景色
+    reverseButtons: true,
+    background: '#fffafb',
   });
 
-  // 2. 如果使用者點擊「是的，登出」
   if (result.isConfirmed) {
     try {
       await signOut(auth);
-
-      // 3. 顯示登出成功的通知（自動關閉）
       Swal.fire({
         icon: 'success',
         title: '已安全登出',
-        text: '期待下次見到你 ✨',
         timer: 1500,
         showConfirmButton: false,
-        timerProgressBar: true
       });
-
-      router.push('/'); // 跳回登入頁
+      router.push('/'); 
     } catch (error) {
       console.error("登出失敗", error);
-      Swal.fire({
-        icon: 'error',
-        title: '登出時發生錯誤',
-        text: '請稍後再試一次 Q_Q',
-      });
     }
   }
 };
 
-// 分類邏輯保持不變
-// 用來存放去重後的分類
-const categories = ref([])
-
-// --- 核心邏輯：獲取該使用者的所有分類 ---
-const fetchUserCategories = async (uid) => {
-  try {
-    const q = query(
-      collection(db, "myFavoryList"), 
-      where("uid", "==", uid)
-    );
-    
-    unsubscribe = onSnapshot(q, (snapshot) => {
-    const allCats = [];
-    snapshot.forEach((doc) => {
-      if (doc.data().category) {
-        allCats.push(doc.data().category);
-      }
-    });
-    // 去重
-    categories.value = [...new Set(allCats)];
-    console.log("分類已即時更新:", categories.value);
-  }, (error) => {
-    console.error("監聽分類失敗:", error);
-  });
-    
-    // 如果想要確保總是有幾個基本選項，可以這樣寫：
-    // const basic = ['漫畫', '動漫'];
-    // categories.value = [...new Set([...basic, ...allCats])];
-    
-  } catch (error) {
-    console.error("抓取分類失敗", error);
-  }
-}
-const isCategoryModalOpen = ref(false)
 const toggleCategoryModal = () => {
   isCategoryModalOpen.value = !isCategoryModalOpen.value
 }
@@ -125,7 +138,10 @@ const toggleCategoryModal = () => {
   <nav class="navbar-container">
     <aside class="sidebar-desktop">
       <div class="brand">
-        <img src="../pic/logo2.png" alt="Favory Logo" class="brand-logo">
+        <router-link to="/Home" class="logo-link">
+          <!-- <img src="../pic/logo2.png" alt="Favory Logo" class="brand-logo"> -->
+          <i class="fa-solid fa-house"></i>
+        </router-link>
       </div>
 
       <div class="user-profile">
@@ -170,6 +186,12 @@ const toggleCategoryModal = () => {
       <router-link to="/Myhome/AddFavory" class="mobile-nav-item">
         <span class="icon"><i class="fa-solid fa-plus"></i></span>
         <span class="label">新增</span>
+      </router-link>
+
+      <router-link to="/Home" class="mobile-nav-item">
+          <!-- <img src="../pic/logo2.png" alt="Favory Logo" class="brand-logo"> -->
+        <span class="icon"><i class="fa-solid fa-house"></i></span>
+        <span class="label">首頁</span>
       </router-link>
 
       <button @click="toggleCategoryModal" class="mobile-nav-item btn-reset">
@@ -276,10 +298,29 @@ const toggleCategoryModal = () => {
 }
 
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; justify-content: center; }
+/* 讓包裹 Logo 的 a 連結不會有奇怪的底線或間距 */
+.logo-link {
+  display: inline-block;
+  transition: transform 0.2s ease; /* 增加一個小動畫 */
+  cursor: pointer;
+}
+
+/* 滑鼠移上去時，讓 Logo 輕微縮放，增加「可愛感」 */
+.logo-link:hover {
+  transform: scale(1.05); /* 稍微放大一點點 */
+}
+
+/* 點擊時的小回饋 */
+.logo-link:active {
+  transform: scale(0.95);
+}
+
 .brand-logo {
-  width: 40px;      /* 根據你的 logo 比例調整寬度 */
-  height: auto;     /* 保持比例 */
+  width: 40px;
+  height: auto;
   object-fit: contain;
+  /* 確保圖片本身不阻擋點擊事件 */
+  pointer-events: none; 
 }
 
 /* 如果是手機版，logo 區塊通常會隱藏或縮小 */

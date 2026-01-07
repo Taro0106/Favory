@@ -38,10 +38,15 @@ const route = useRoute()
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background-image: url('https://i.pinimg.com/736x/e5/74/98/e574986391e767659f0fe852c8c7ede2.jpg');
+  /* 🌸 主背景：淡奶白＋極柔粉 */
+  background:
+    radial-gradient(circle at 80% 20%, #fff3f6 0%, transparent 35%),
+    radial-gradient(circle at 20% 80%, #f3f6ff 0%, transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  /* background-image: url('https://i.pinimg.com/736x/e5/74/98/e574986391e767659f0fe852c8c7ede2.jpg');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
+  background-attachment: fixed; */
   /* 核心代碼：確保內容過多時可捲動，但隱藏滾輪條 */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */

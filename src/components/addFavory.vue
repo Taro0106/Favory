@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { db, auth } from '../firebase' 
-import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, where } from 'firebase/firestore'
-import { onAuthStateChanged } from 'firebase/auth'
+// 🌟 確保從 firebase/firestore 引入 runTransaction
+import { collection, doc,runTransaction } from 'firebase/firestore'
 import Swal from 'sweetalert2'
 import { useRouter } from 'vue-router'
 const router = useRouter()
@@ -15,7 +15,6 @@ const status = ref('')
 const rating = ref(0)
 const comment = ref('')
 const isUploading = ref(false)
-const collectionList = ref([]) 
 
 // --- 2. Cloudinary 設定 ---
 const cloudName = "dn6r2yt4y"; 
@@ -42,81 +41,86 @@ const uploadToCloudinary = async (event) => {
   }
 }
 
+
 const addItem = async () => {
-  // 驗證失敗：改用 Swal.fire 警告
+  // 1. 驗證邏輯 (保持不變)
   if (!FavoryName.value) {
-    return Swal.fire({
-      icon: 'warning',
-      title: '哎呀！',
-      text: '請輸入名稱喔！',
-      confirmButtonColor: '#6366f1'
-    });
+    return Swal.fire({ icon: 'warning', title: '哎呀！', text: '請輸入名稱喔！', confirmButtonColor: '#6366f1' });
   }
-  
   if (!imageUrl.value) {
-    return Swal.fire({
-      icon: 'warning',
-      title: '圖片在哪呢？',
-      text: '請挑選一張喜歡的圖片作為封面吧！',
-      confirmButtonColor: '#6366f1'
-    });
+    return Swal.fire({ icon: 'warning', title: '圖片在哪呢？', text: '請挑選一張圖片吧！', confirmButtonColor: '#6366f1' });
   }
-
   if (!auth.currentUser) {
-    return Swal.fire({
-      icon: 'error',
-      title: '權限不足',
-      text: '登入後才能收藏喔！',
-      confirmButtonColor: '#6366f1'
-    });
+    return Swal.fire({ icon: 'error', title: '權限不足', text: '登入後才能收藏喔！', confirmButtonColor: '#6366f1' });
   }
 
-  // 顯示儲存中的 Loading 狀態（防止重複點擊）
+  // 顯示 Loading
   Swal.fire({
-    title: '儲存中...',
+    title: '儲存並更新數據中...',
     allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    }
+    didOpen: () => { Swal.showLoading(); }
   });
 
+  const uid = auth.currentUser.uid;
+  const userRef = doc(db, "users", uid); // 🌟 指向 users 集合中的該使用者文件
+  const listRef = collection(db, "myFavoryList"); // 收藏清單集合
+
   try {
-    await addDoc(collection(db, "myFavoryList"), {
-      name: FavoryName.value,
-      image: imageUrl.value,
-      category: category.value,
-      status: status.value,
-      rating: rating.value,
-      comment: comment.value,
-      uid: auth.currentUser.uid,
-      createdAt: new Date()
+    // 🌟 使用 Transaction 保證原子性 (Atomicity)
+    await runTransaction(db, async (transaction) => {
+      // A. 先讀取目前使用者的資料
+      const userSnap = await transaction.get(userRef);
+      if (!userSnap.exists()) {
+        throw "使用者文件不存在！";
+      }
+
+      // B. 獲取目前數值並 +1
+      const newTotal = (userSnap.data().totalCollections || 0) + 1;
+
+      // C. 寫入新的收藏項目 (addDoc 不能放在 transaction 內，所以改用 doc().set)
+      const newDocRef = doc(listRef); // 自動生成 ID
+      transaction.set(newDocRef, {
+        name: FavoryName.value,
+        image: imageUrl.value,
+        category: category.value,
+        status: status.value,
+        rating: rating.value,
+        comment: comment.value,
+        uid: uid,
+        createdAt: new Date()
+      });
+
+      // D. 更新 users 集合的計數器
+      transaction.update(userRef, {
+        totalCollections: newTotal
+      });
     });
 
-    // 成功後顯示超美的勾勾
+    // 成功後的處理 (保持不變)
     Swal.fire({
       icon: 'success',
       title: '成功加入收藏！',
       text: `《${FavoryName.value}》已經入庫囉！`,
-      timer: 2000, // 2秒後自動關閉
+      timer: 2000,
       showConfirmButton: false,
       timerProgressBar: true,
     });
 
-    // 重置表單
+    // 重置表單並跳轉
     FavoryName.value = ''; 
     imageUrl.value = ''; 
     comment.value = '';
-    category.value = ''; // 記得把分類也重置
-    rating.value = 0;    // 回到預設評分
+    category.value = '';
+    rating.value = 0;
     isModalOpen.value = false;
     router.push('/Myhome/List');
 
   } catch (e) {
-    console.error(e);
+    console.error("儲存失敗:", e);
     Swal.fire({
       icon: 'error',
       title: 'Oops...',
-      text: '發生了一些錯誤，請稍後再試 Q_Q',
+      text: '儲存失敗或更新計數出錯，請再試一次 Q_Q',
     });
   }
 }

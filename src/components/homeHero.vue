@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { db, auth } from '../firebase'
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore'
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
 // Swiper 相關引入
@@ -13,7 +13,7 @@ import 'swiper/css/pagination'
 const recentItems = ref([])
 const currentUser = ref(null)
 
-// 抓取全站最新 5 筆
+// 🌟 核心修正：抓取資料並補上使用者資訊
 const fetchRecentItems = async () => {
   const q = query(
     collection(db, "myFavoryList"),
@@ -21,7 +21,38 @@ const fetchRecentItems = async () => {
     limit(5)
   )
   const querySnapshot = await getDocs(q)
-  recentItems.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  const rawItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+  // 建立一個快取，避免重複抓同一個人的資料
+  const userCache = {}
+
+  // 🌟 使用 Promise.all 同步補齊所有項目的使用者資料
+  const enrichedItems = await Promise.all(rawItems.map(async (item) => {
+    // 注意：這裡請確認你資料庫存的是 uid 還是 userId
+    const uid = item.uid || item.uid 
+    
+    if (uid) {
+      // 如果快取裡沒有，就去資料庫抓
+      if (!userCache[uid]) {
+        const userSnap = await getDoc(doc(db, "users", uid))
+        if (userSnap.exists()) {
+          userCache[uid] = userSnap.data()
+        }
+      }
+
+      // 如果抓到資料，就覆蓋 item 裡的名字和頭貼
+      if (userCache[uid]) {
+        return {
+          ...item,
+          userName: userCache[uid].displayName,
+          userAvatar: userCache[uid].photoURL
+        }
+      }
+    }
+    return item
+  }))
+
+  recentItems.value = enrichedItems
 }
 
 onMounted(() => {
@@ -46,7 +77,7 @@ onMounted(() => {
             <div class="creator-tag">
               <img :src="item.userAvatar || 'https://i.pinimg.com/474x/ac/df/d8/acdfd8460a47c598dbbc9d1794561595.jpg'" class="creator-avatar">
               <div class="creator-meta">
-                <span class="creator-name">{{ item.uid || '匿名收藏家' }}</span>
+                <span class="creator-name">{{ item.userName || '匿名收藏家' }}</span>
                 <span class="post-time">{{ new Date(item.createdAt?.toDate()).toLocaleDateString() }}</span>
               </div>
             </div>
@@ -54,10 +85,6 @@ onMounted(() => {
             <div class="card-content">
               <div class="left-info">
                 <h1 class="item-name">{{ item.name }}</h1>
-                <!-- <div class="rating-box">
-                  <span class="star-text">★</span>
-                  <span class="rating-num">{{ item.rating }}</span>
-                </div> -->
                 <div class="comment-text">
                   <div class="comment-inner">
                     {{ item.comment || '這名收藏家很懶，什麼都沒留下...' }}
